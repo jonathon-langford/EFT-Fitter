@@ -1,10 +1,10 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import numpy as np
-verbose=False
+#verbose=False
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Chi2: function to minimize
 #  * Takes as input array of POIS to fit, if list is empty then will not reset
-def GetChi2(P,args=[]):#FIT):
+def GetChi2(P,args=[],verbose=False):#FIT):
   #print(args)
   FIT=args
   chi2 = 0.

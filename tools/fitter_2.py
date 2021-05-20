@@ -1,5 +1,5 @@
 # Simple python fitting object
-SCIPY_MINIMIZE=False
+SCIPY_MINIMIZE=True
 if SCIPY_MINIMIZE : from scipy.optimize import minimize
 else: import iminuit.minimize as minimize
 
@@ -9,12 +9,14 @@ import array
 import numpy as np
 import sys
 import re
+import json
 
 from collections import OrderedDict as od
 
 from tools.input import INPUT
 from tools.helpers import *
 from tools.Chi2 import GetChi2
+from tools.basisRotation import *
 
 class fitter:
 
@@ -31,6 +33,12 @@ class fitter:
     self.npindex = {}
     self.has_uncerts = False
     self.iX = 0
+
+    # For basis rotation
+    self.xs_coeffs = {}
+    self.dec_coeffs = {}
+    self.merges = {}
+    self.XSMap = {}
 
     self.prepareInputs(inputs)
     if theory_uncerts: self.prepareTHU(theory_uncerts)
@@ -50,6 +58,26 @@ class fitter:
   def prepareInputs(self,inputMeasurements):
     for im in inputMeasurements:
       self.INPUTS.append( INPUT(im,self.FUNCTIONS,self.doAsimov) )
+
+  def loadXSCoeffs(self,fname):
+    with open(fname,"r") as fj: data = json.load(fj)
+    self.xs_coeffs = data
+
+  def loadDecCoeffs(self,fname):
+    with open(fname,"r") as fj: data = json.load(fj)
+    self.dec_coeffs = data
+
+  def loadMerges(self,fname):
+    with open(fname,"r") as fj: data = json.load(fj)
+    self.merges = data
+
+  def loadXSMap(self,fname):
+    with open(fname,"r") as fj: data = json.load(fj)
+    self.XSMap = data
+
+  def rotateBasis(self,inputRotationMatrix=None):
+    if inputRotationMatrix is None: self.PMATRIX = extractPMatrix(self)
+    self.validRotation = basis_rotation(self,rmatrix=inputRotationMatrix)
 
   def prepareTHU(self,thinput):
     # add the uncertainties
@@ -154,7 +182,7 @@ class fitter:
 
   # Function to calculate chi2 for current set of POIS
   def getChi2(self,verbose=True):
-    return GetChi2([],self)
+    return GetChi2([],self,verbose=verbose)
 
   # Function to set the parameters to the global minimum
   def setGlobalMinimum(self,setParamsToNominal=False): 

@@ -1,3 +1,6 @@
+import numpy as np
+import array
+from scipy import linalg
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Extract all required info for input measurement
 class INPUT:
@@ -91,6 +94,8 @@ class INPUT:
     nbins = len( inputMeasurement['X'].keys() )
     corr_sq = [ corr[i:i+nbins] for i in range(0,len(corr),nbins)]
     cov_sq = [ [ corr_sq[i][j]*err[i]*err[j] for i in range(nbins)] for j in range(nbins) ]
+    self.corr_sq = np.array(corr_sq)
     self.err_mat = np.array(cov_sq)
+    #self.Vinv = self.err_mat
     self.Vinv = linalg.inv(self.err_mat)
     self.nbins = nbins
