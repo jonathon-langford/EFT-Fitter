@@ -77,7 +77,7 @@ class fitter:
 
   def rotateBasis(self,inputRotationMatrix=None):
     if inputRotationMatrix is None: self.PMATRIX = extractPMatrix(self)
-    self.validRotation = basis_rotation(self,rmatrix=inputRotationMatrix)
+    self.rotated = basis_rotation(self,rmatrix=inputRotationMatrix)
 
   def prepareTHU(self,thinput):
     # add the uncertainties
@@ -169,6 +169,7 @@ class fitter:
   def setLinearOnly(self,_linearOnly=True): self.linearOnly = _linearOnly
   
   def evaluatePTerms(self):
+    # From python 3.6 dicts are ordered by default: matrix calc works in function calculation
     poi_map = { p:self.P0[self.PList.index(p)] for p in self.PList }
     for p in self.PTerms.keys():
       x = self.functions[p](poi_map)

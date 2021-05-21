@@ -87,7 +87,7 @@ def basis_rotation(FIT,rmatrix=None):
   FIT.rPList = []
   FIT.rP0 = []
   FIT.rPBounds = []
-  FIT.rPDefinitions = []
+  FIT.rPDefinitions = {}
   FIT.rPEigenvalues = []
   for i in range(len(FIT.EIGVECS)):
     FIT.rPOIS["c%g"%(i+1)] = {}
@@ -103,15 +103,17 @@ def basis_rotation(FIT,rmatrix=None):
       nominal += FIT.POIS[poi]['nominal']*rdef[poi]
       lb += FIT.POIS[poi]['range'][0]*rdef[poi]
       hb += FIT.POIS[poi]['range'][1]*rdef[poi]
-    FIT.rPOIS["c%g"%(i+1)]['range'] = [lb,hb]
+    if lb>hb: hrange,lrange = lb,hb
+    else: hrange,lrange = hb,lb
+    FIT.rPOIS["c%g"%(i+1)]['range'] = [lrange,hrange]
     FIT.rPOIS["c%g"%(i+1)]['title'] = "C_{%g}"%(i+1)
     FIT.rPOIS["c%g"%(i+1)]['freeze'] = 0
-    FIT.rPDefinitions.append(rdef)
+    FIT.rPDefinitions["c%g"%(i+1)] = rdef
     FIT.rP0.append(nominal)
-    FIT.rPBounds.append([lb,hb])
+    FIT.rPBounds.append([lrange,hrange])
     # Initially freeze all POIS: change state in minimizer functions
     FIT.rPToFitList = []
-    
-  # Prepare rotated functions
+   
+  # If successfully rotated then return True
   return True
 
