@@ -1,148 +1,35 @@
-
 from collections import OrderedDict as od
+
+allParams = ['cg', 'cw', 'ch', 'chbox', 'chdd', 'chg', 'chw', 'chb', 'chwb', 'cehre', 'cuhre', 'cdhre', 'cewre', 'cebre', 'cugre', 'cuwre', 'cubre', 'cdgre', 'cdwre', 'cdbre', 'chl1', 'chl3', 'che', 'chq1', 'chq3', 'chu', 'chd', 'chudre', 'cll', 'cll1', 'cqq1', 'cqq11', 'cqq3', 'cqq31', 'clq1', 'clq3', 'cee', 'cuu', 'cuu1', 'cdd', 'cdd1', 'ceu', 'ced', 'cud1', 'cud8', 'cle', 'clu', 'cld', 'cqe', 'cqu1', 'cqu8', 'cqd1', 'cqd8', 'cledqre', 'cquqd1re', 'cquqd11re', 'cquqd8re', 'cquqd81re', 'clequ1re', 'clequ3re', 'cgtil', 'cwtil', 'chgtil', 'chwtil', 'chbtil', 'chwbtil', 'cewim', 'cebim', 'cugim', 'cuwim', 'cubim', 'cdgim', 'cdwim', 'cdbim', 'chudim', 'cehim', 'cuhim', 'cdhim', 'cledqim', 'cquqd1im', 'cquqd8im', 'cquqd11im', 'cquqd81im', 'clequ1im', 'clequ3im']
+
+SMEFTParamers = ['cg', 'cw', 'ch', 'chbox', 'chdd', 'chg', 'chw', 'chb', 'chwb', 'cehre', 'cuhre', 'cdhre', 'cewre', 'cebre', 'cugre', 'cuwre', 'cubre', 'cdgre', 'cdwre', 'cdbre', 'chl1', 'chl3', 'che', 'chq1', 'chq3', 'chu', 'chd', 'chudre', 'cll', 'cll1', 'cqq1', 'cqq11', 'cqq3', 'cqq31', 'clq1', 'clq3', 'cee', 'cuu', 'cuu1', 'cdd', 'cdd1', 'ceu', 'ced', 'cud1', 'cud8', 'cle', 'clu', 'cld', 'cqe', 'cqu1', 'cqu8', 'cqd1', 'cqd8', 'cledqre', 'cquqd1re', 'cquqd11re', 'cquqd8re', 'cquqd81re', 'clequ1re', 'clequ3re']
+
+SMEFTCPVParams = ['cgtil', 'cwtil', 'chgtil', 'chwtil', 'chbtil', 'chwbtil', 'cewim', 'cebim', 'cugim', 'cuwim', 'cubim', 'cdgim', 'cdwim', 'cdbim', 'chudim', 'cehim', 'cuhim', 'cdhim', 'cledqim', 'cquqd1im', 'cquqd8im', 'cquqd11im', 'cquqd81im', 'clequ1im', 'clequ3im']
+
+CParams = ['cg', 'ch', 'chbox', 'chdd', 'chg', 'chw', 'chb', 'chwb', 'cehre', 'cuhre', 'cdhre', 'cewre', 'cebre', 'cugre', 'cuwre', 'cubre', 'cdgre', 'cdwre', 'cdbre', 'chl1', 'chl3', 'che', 'chq1', 'chq3', 'chu', 'chd', 'chudre', 'cll1', 'cqq1', 'cqq11', 'cqq3', 'cqq31', 'clq1', 'clq3', 'cee', 'cuu', 'cuu1', 'cdd1', 'ced', 'cud1', 'cud8', 'cle', 'cqu1', 'cqu8', 'cqd1', 'cqd8']
+
+FParams = ['chg','chb','chwb','chw','chq3','cugre','chu','cdhre','cqq31','cg','cuu1','chq1','cqq11','chd','chl3','cqu8','cll1','chl1','chbox','cud8','che','cqd8','cehre','cuhre','cqq3']
+
+ProfileTest = ['chw','chb','chwb']
+
+adjustRanges = od()
+adjustRanges['chb'] = [-0.05,0.05]
+adjustRanges['chg'] = [-0.01,0.01]
+adjustRanges['chq3'] = [-0.05,0.05]
+adjustRanges['chw'] = [-0.05,0.05]
+adjustRanges['chwb'] = [-0.05,0.05]
+
+
 pois = od()
 
-pois["chbox"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-4,5],
-  "title":"C_{HBox}",
-  "nominal":0
-}
-
-pois["chdd"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-20,20],
-  "title":"C_{HDD}",
-  "nominal":0
-}
-
-pois["chg"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-1.5e-2,1.5e-2],
-  "title":"C_{HG}",
-  "nominal":0
-}
-
-pois["chw"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-5e-2,3e-2],
-  "title":"C_{HW}",
-  "nominal":0
-}
-
-pois["chb"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-5e-2,1.5e-1],
-  "title":"C_{HB}",
-  "nominal":0
-}
-
-pois["chwb"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-3e-2,3e-2],
-  "title":"C_{HWB}",
-  "nominal":0
-}
-
-pois["cehabs"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-100,100],
-  "title":"|C_{eH}|",
-  "nominal":0
-}
-
-pois["cuhabs"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-20,20],
-  "title":"|C_{uH}|",
-  "nominal":0
-}
-
-pois["cdhabs"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-5,5],
-  "title":"|C_{dH}|",
-  "nominal":0
-}
-
-pois["cugabs"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-1,1.5],
-  "title":"|C_{uG}|",
-  "nominal":0
-}
-
-pois["chl1"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-50,50],
-  "title":"C^{(1)}_{Hl}",
-  "nominal":0
-}
-
-pois["chl3"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-2.5,3.5],
-  "title":"C^{(3)}_{Hl}",
-  "nominal":0
-}
-
-#pois["che"] = {
-#  "factor":1,
-#  "multiplier":1,
-#  "range":[-6,6],
-#  "title":"C_{He}",
-#  "nominal":0
-#}
-
-pois["chq1"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-1,1],
-  "title":"C^{(1)}_{Hq}",
-  "nominal":0
-}
-
-pois["chq3"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-0.5,0.5],
-  "title":"C^{(3)}_{Hq}",
-  "nominal":0
-}
-
-pois["chu"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-3,3],
-  "title":"C_{Hu}",
-  "nominal":0
-}
-
-pois["chd"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-3,3],
-  "title":"C_{Hd}",
-  "nominal":0
-}
-
-pois["cll1"] = {
-  "factor":1,
-  "multiplier":1,
-  "range":[-20,20],
-  "title":"C^{(1)}_{ll}",
-  "nominal":0
-}
-
+#for cp in CParams:
+for cp in ProfileTest:
+  pois[cp] = {
+    "factor":1,
+    "multiplier":1,
+    "range":[-1,1],
+    "title":cp,
+    "nominal":0
+  }
+  if cp in adjustRanges:
+    pois[cp]['range'] = adjustRanges[cp]
