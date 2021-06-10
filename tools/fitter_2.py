@@ -1,6 +1,6 @@
 # Simple python fitting object
 SCIPY_MINIMIZE=True
-USE_GRADIENT=True
+USE_GRADIENT=False
 
 if SCIPY_MINIMIZE : from scipy.optimize import minimize
 else: import iminuit.minimize as minimize
@@ -12,12 +12,14 @@ import array
 import numpy as np
 import sys
 import re
+import json
 
 from collections import OrderedDict as od
 
 from tools.input import INPUT
 from tools.helpers import *
 from tools.Chi2 import GetChi2, GetChi2Grad
+from tools.basisRotation import *
 
 class fitter:
 
@@ -37,6 +39,15 @@ class fitter:
     self.npindex = {}
     self.has_uncerts = False
     self.iX = 0
+
+    # For basis rotation
+    self.xs_coeffs = {}
+    self.dec_coeffs = {}
+    self.merges = {}
+    self.XSMap = {}
+    self.RMATRIX = None
+    self.rotated = False
+    self.valid_rotation = False
 
     self.prepareInputs(inputs)
     if theory_uncerts: self.prepareTHU(theory_uncerts)
@@ -61,6 +72,43 @@ class fitter:
   def prepareInputs(self,inputMeasurements):
     for im in inputMeasurements:
       self.INPUTS.append( INPUT(im,self.FUNCTIONS,self.doAsimov) )
+
+  def loadXSCoeffs(self,fname):
+    with open(fname,"r") as fj: data = json.load(fj)
+    self.xs_coeffs = data
+
+  def loadDecCoeffs(self,fname):
+    with open(fname,"r") as fj: data = json.load(fj)
+    self.dec_coeffs = data
+
+  def loadMerges(self,fname):
+    with open(fname,"r") as fj: data = json.load(fj)
+    self.merges = data
+
+  def loadXSMap(self,fname):
+    with open(fname,"r") as fj: data = json.load(fj)
+    self.XSMap = data
+
+  def rotateBasis(self,inputRotationMatrix=None):
+    if inputRotationMatrix is None: self.PMATRIX = extractPMatrix(self)
+    self.valid_rotation = basis_rotation(self,rmatrix=inputRotationMatrix)
+
+  def setRotatedBasis(self):
+    if self.rotated:
+      print("Basis already rotated...")
+    else:
+      if self.valid_rotation:
+        print("Rotating fit basis...")
+        set_rotated_basis(self)
+      else:
+        print("No valid basis to rotate to. Try running fit.rotateBasis() first...")
+
+  def resetBasis(self):
+    if not self.rotated:
+      print("Basis has not previously been rotated...")
+    else:
+      print("Rotating basis back to nominal...")
+      reset_rotated_basis(self)
 
   def prepareTHU(self,thinput):
     # add the uncertainties
@@ -99,10 +147,8 @@ class fitter:
       self.PBounds.append( (vals['range'][0],vals['range'][1]) )
       if "freeze" not in vals: vals["freeze"]=0
     self.P0 = np.array( self.P0 )
-    # Initially freeze all POIS: change state in minimizer function
     # Initially just assume the POIs to be fit are all the non frozen ones
     self.PToFitList = self.getFreePOIs()
-    #self.PToFitList = []
 
   def preparePTerms(self,functions):
     self.PTerms = od()
@@ -165,15 +211,37 @@ class fitter:
   def setLinearOnly(self,_linearOnly=True): self.linearOnly = _linearOnly
   
   def evaluatePTerms(self):
-    poi_map = { p:self.P0[self.PList.index(p)] for p in self.PList }
-    pterms = {p:self.functions[p](poi_map) for p in self.PTerms.keys()}
+    # If rotated: need to feed rotation matrix into function calc
+    if self.rotated:
+      nominal_poi_map = { p:self.nominalP0[self.nominalPList.index(p)] for p in self.nominalPList }
+      poi_map = { p:self.P0[self.PList.index(p)] for p in self.PList }
+      if self.linearOnly: pterms = {p:self.functions[p](nominal_poi_map,poi_map,self.RMATRIX,LINEARONLY=self.linearOnly) for p in self.PTerms.keys()}
+      else: pterms = {p:self.functions[p](nominal_poi_map,poi_map,self.RMATRIX) for p in self.PTerms.keys()}
+    else:
+      poi_map = { p:self.P0[self.PList.index(p)] for p in self.PList }
+      if self.linearOnly: pterms = {p:self.functions[p](poi_map,LINEARONLY=self.linearOnly) for p in self.PTerms.keys()}
+      else: pterms = {p:self.functions[p](poi_map) for p in self.PTerms.keys()}
     self.PTerms.update(pterms)
   
   def evaluateDPTerms(self):
-    poi_map = { p:self.P0[self.PList.index(p)] for p in self.PList }
-    for p in self.DPTerms.keys(): 
-      pterms = {param:self.grad_functions[p](poi_map,param) for param in self.PList}
-      self.DPTerms[p].update(pterms)
+    # If rotated: need to feed rotation matrix into grad calc
+    if self.rotated:
+      nominal_poi_map = { p:self.nominalP0[self.nominalPList.index(p)] for p in self.nominalPList }
+      poi_map = { p:self.P0[self.PList.index(p)] for p in self.PList }
+      for p in self.DPTerms.keys():
+        if self.linearOnly:
+          pterms = {param:self.grad_functions[p](nominal_poi_map,param,poi_map,self.RMATRIX,LINEARONLY=self.linearOnly) for param in self.PList}
+        else:
+          pterms = {param:self.grad_functions[p](nominal_poi_map,param,poi_map,self.RMATRIX) for param in self.PList}
+        self.DPTerms[p].update(pterms)
+    else:
+      poi_map = { p:self.P0[self.PList.index(p)] for p in self.PList }
+      for p in self.DPTerms.keys(): 
+        if self.linearOnly:
+          pterms = {param:self.grad_functions[p](poi_map,param,LINEARONLY=self.linearOnly) for param in self.PList}
+        else:
+          pterms = {param:self.grad_functions[p](poi_map,param) for param in self.PList}
+        self.DPTerms[p].update(pterms)
   
   # Evaluate scaling functions for current set of POIS
   def evaluateScalingFunctions(self,term):
@@ -203,6 +271,37 @@ class fitter:
 
   def getGlobalMinimum(self):
     return self.global_min_chi2
+
+  # Function to extract Hessian using finite differences method at minimum
+  def getHessian(self,stepsize=1e-2):
+    H = np.zeros((len(self.getFreePOIs()),len(self.getFreePOIs())))
+    # Find minimum
+    self.minimize(verbose=False)
+    x_0 = self.getPOIS()
+    chi2_0 = self.getChi2(verbose=False)
+    for i,ipoi in enumerate(self.getFreePOIs()):
+      for j,jpoi in enumerate(self.getFreePOIs()):
+        self.setPOIS(x_0)
+        if i==j:
+          self.setPOIS({ipoi:(x_0[ipoi]-stepsize)})
+          chi2_minus = 0.5*self.getChi2(verbose=False)
+          self.setPOIS({ipoi:(x_0[ipoi]+stepsize)})
+          chi2_plus = 0.5*self.getChi2(verbose=False)
+          h = (chi2_minus-2*chi2_0+chi2_plus)/stepsize**2
+          H[i][j] = h
+        else:
+          self.setPOIS({ipoi:(x_0[ipoi]-stepsize),jpoi:(x_0[jpoi]-stepsize)})
+          chi2_minus_minus = 0.5*self.getChi2(verbose=False)
+          self.setPOIS({ipoi:(x_0[ipoi]+stepsize),jpoi:(x_0[jpoi]-stepsize)})
+          chi2_plus_minus = 0.5*self.getChi2(verbose=False)
+          self.setPOIS({ipoi:(x_0[ipoi]-stepsize),jpoi:(x_0[jpoi]+stepsize)})
+          chi2_minus_plus = 0.5*self.getChi2(verbose=False)
+          self.setPOIS({ipoi:(x_0[ipoi]+stepsize),jpoi:(x_0[jpoi]+stepsize)})
+          chi2_plus_plus = 0.5*self.getChi2(verbose=False)
+          h = (chi2_plus_plus-(chi2_minus_plus+chi2_plus_minus)+chi2_minus_minus)/(4*stepsize**2)
+          H[i][j] = h
+    self.setPOIS(x_0)
+    return H
   
   # Function to set the parameters to the global minimum
   def setGlobalMinimum(self,setParamsToNominal=False): 
@@ -244,7 +343,7 @@ class fitter:
     prefit_time  = time.perf_counter()     
     if SCIPY_MINIMIZE: 
       if USE_GRADIENT: self.FitResult = minimize(GetChi2,PToFit,args=self,bounds=PToFitBounds,jac=GetChi2Grad)
-      else: self.FitResult = minimize(GetChi2,PToFit,args=self,bounds=PToFitBounds)
+      else: self.FitResult = minimize(GetChi2,PToFit,args=self,bounds=PToFitBounds,method='L-BFGS-B')
     else:              
       if USE_GRADIENT: self.FitResult = minimize(GetChi2,PToFit,args=[self],bounds=PToFitBounds,jac=GetChi2Grad,options={"stra":0})
       else: self.FitResult = minimize(GetChi2,PToFit,args=[self],bounds=PToFitBounds,options={"stra":0})
@@ -290,6 +389,49 @@ class fitter:
       allpredictions.append(self.getPredictions())
 
     return pvals, np.array(chi2), allparams, allpredictions
+
+    # Function to perform 2D chi2 scan for pair of params
+  def scan_fixed_2D(self,xpoi,ypoi,npoints=[100,100],reset=True):
+    # Reset all pois to nominal values
+    if reset: self.resetPOIS()
+    print("Re-Setting to nominal values for fixed scan, ",self.P0)
+    self.resetNuisances()
+
+    # step one is to do a global fit to find the minimum 
+    toFreezePOIs = list(self.getFreePOIs())
+    toFreezePOIs.remove(xpoi)
+    toFreezePOIs.remove(ypoi)
+    self.minimize(freezePOIS=toFreezePOIs,verbose=False)
+    nll_global = self.FitResult.fun
+
+    # Loop over range of pois and calc chi2
+    xpvals = np.linspace( self.POIS[xpoi]['range'][0], self.POIS[xpoi]['range'][1], npoints[0] )
+    ypvals = np.linspace( self.POIS[ypoi]['range'][0], self.POIS[ypoi]['range'][1], npoints[1] )
+
+    X,Y = np.meshgrid(xpvals,ypvals)
+    CHI2 = []
+    ALLPARAMS = []
+    ALLPREDICTIONS = []
+
+    # How can this be vectorized (issue since pois stored in class :/)
+    for i in range(len(X)):
+      chi2 = []
+      allparams = []
+      allpredictions = []
+      for j in range(len(Y)):
+        self.setPOIS({xpoi:X[i][j],ypoi:Y[i][j]})
+        if self.has_uncerts:
+          self.minimize(freezePOIS=self.getFreePOIs(),verbose=False)
+          chi2.append(self.FitResult.fun-nll_global)
+        else:
+          chi2.append(self.getChi2(verbose=False)-nll_global)
+        allparams.append(self.getPOIS())
+        allpredictions.append(self.getPredictions())
+      CHI2.append(chi2)
+      ALLPARAMS.append(allparams)
+      ALLPREDICTIONS.append(allpredictions)
+
+    return X,Y, np.array(CHI2), np.array(ALLPARAMS), np.array(ALLPREDICTIONS)
 
   # Function to perform chi2 scan when profiling other parameters
   # we can thread the calls to minimize and pull them together (sort after with itertools?)

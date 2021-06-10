@@ -53,5 +53,10 @@ from tools.fitter_2 import *
 
 fit = fitter(pois,functions,grad_functions,inputs,opt.doAsimov,opt.theory_uncerts)
 
-sys.exit(1)
+# For basis rotation
+fit.loadXSCoeffs("functions/SMEFT/xs_coeffs.json")
+fit.loadDecCoeffs("functions/SMEFT/dec_coeffs.json")
+fit.loadMerges("functions/SMEFT/stxs_stage1p2_merge.json")
+fit.loadXSMap("functions/SMEFT/XS.json")
 
+fit.rotateBasis()

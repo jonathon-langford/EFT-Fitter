@@ -13,16 +13,20 @@ FParams = ['chg','chb','chwb','chw','chq3','cugre','chu','cdhre','cqq31','cg','c
 ProfileTest = ['chw','chb','chwb']
 
 adjustRanges = od()
-adjustRanges['chb'] = [-0.05,0.05]
 adjustRanges['chg'] = [-0.01,0.01]
 adjustRanges['chq3'] = [-0.05,0.05]
-adjustRanges['chw'] = [-0.05,0.05]
-adjustRanges['chwb'] = [-0.05,0.05]
+#adjustRanges['chw'] = [-0.05,0.05]
+adjustRanges['chw'] = [-1,1]
+#adjustRanges['chb'] = [-0.05,0.05]
+adjustRanges['chb'] = [-1,1]
+#adjustRanges['chwb'] = [-0.05,0.05]
+adjustRanges['chwb'] = [-1,1]
 
 
 pois = od()
 
 #for cp in CParams:
+#for cp in FParams:
 for cp in ProfileTest:
   pois[cp] = {
     "factor":1,
